@@ -1,0 +1,189 @@
+<!DOCTYPE html><html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kuis Simulasi Gempa</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #eef3ff;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h2 { margin-top: 0; }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: #4a6cf7;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+        }
+        .option {
+            padding: 12px;
+            margin-top: 10px;
+            background: #f1f4ff;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .option:hover {
+            background: #dfe6ff;
+        }
+        .hidden { display: none; }
+        .correct { background: #b7ffb7 !important; }
+        .wrong { background: #ffb7b7 !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h2>Kuis Simulasi Gempa</h2><div id="startScreen">
+            <p>Uji pengetahuanmu tentang apa yang harus dilakukan saat gempa!
+                Ada 10 soal acak, siap Bro?</p>
+            <button class="btn" onclick="startQuiz()">Mulai Kuis</button>
+        </div>
+
+        <div id="quizScreen" class="hidden">
+            <h3 id="questionText"></h3>
+            <div id="options"></div>
+        </div>
+
+        <div id="resultScreen" class="hidden">
+            <h3>Hasil Kuis</h3>
+            <p id="scoreText"></p>
+            <button class="btn" onclick="startQuiz()">Ulangi Kuis</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            q: "Saat gempa terjadi di kelas, apa tindakan paling aman?",
+            options: ["Lari keluar secepatnya", "Berlindung di bawah meja", "Berdiri dekat jendela"],
+            answer: 1
+        },
+        {
+            q: "Jika gempa terjadi saat kamu di koridor sekolah?",
+            options: ["Menempel ke dinding dan lindungi kepala", "Turun tangga cepat", "Lari ke lapangan"],
+            answer: 0
+        },
+        {
+            q: "Kamu sedang di kantin, gempa terjadi. Apa yang kamu lakukan?",
+            options: ["Sembunyi di balik kaca", "Merunduk di bawah meja kantin", "Lari sambil membawa makanan"],
+            answer: 1
+        },
+        {
+            q: "Saat gempa, lift harus…",
+            options: ["Tetap digunakan", "Tidak digunakan sama sekali", "Dipanggil untuk evakuasi"],
+            answer: 1
+        },
+        {
+            q: "Setelah guncangan berhenti, apa langkah berikutnya?",
+            options: ["Evakuasi ke titik kumpul", "Kembali main HP", "Masuk kelas lagi"],
+            answer: 0
+        },
+        {
+            q: "Saat gempa besar, posisi tubuh terbaik adalah…",
+            options: ["Duduk biasa", "Berdiri tegak", "Drop, Cover, Hold On"],
+            answer: 2
+        },
+        {
+            q: "Jika plafon mulai retak saat gempa?",
+            options: ["Lari di area terbuka", "Lindungi kepala & menjauh dari benda jatuh", "Merekam untuk konten"],
+            answer: 1
+        },
+        {
+            q: "Saat kamu berada dekat lemari tinggi saat gempa?",
+            options: ["Tetap di dekat lemari", "Menjauh dari lemari", "Memegang lemari biar nggak jatuh"],
+            answer: 1
+        },
+        {
+            q: "Apa yang harus kamu hindari setelah gempa selesai?",
+            options: ["Area listrik rusak", "Titik kumpul", "Ruang terbuka"],
+            answer: 0
+        },
+        {
+            q: "Siapa yang harus kamu ikuti saat evakuasi sekolah?",
+            options: ["Arah temen", "Guru / petugas sekolah", "Lari sendiri biar cepat"],
+            answer: 1
+        }
+    ];
+
+    let current = 0;
+    let score = 0;
+    let used = [];
+
+    function startQuiz() {
+        document.getElementById('startScreen').classList.add('hidden');
+        document.getElementById('resultScreen').classList.add('hidden');
+        document.getElementById('quizScreen').classList.remove('hidden');
+
+        score = 0;
+        used = [];
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if (used.length === 10) return endQuiz();
+
+        let index;
+        do {
+            index = Math.floor(Math.random() * questions.length);
+        } while (used.includes(index));
+
+        used.push(index);
+        current = questions[index];
+
+        document.getElementById('questionText').innerText = current.q;
+
+        const optBox = document.getElementById('options');
+        optBox.innerHTML = '';
+
+        current.options.forEach((opt, i) => {
+            const div = document.createElement('div');
+            div.className = 'option';
+            div.innerText = opt;
+            div.onclick = () => choose(i, div);
+            optBox.appendChild(div);
+        });
+    }
+
+    function choose(i, element) {
+        const opts = document.querySelectorAll('.option');
+
+        if (i === current.answer) {
+            element.classList.add('correct');
+            score++;
+        } else {
+            element.classList.add('wrong');
+            opts[current.answer].classList.add('correct');
+        }
+
+        opts.forEach(o => o.onclick = null);
+
+        setTimeout(loadQuestion, 900);
+    }
+
+    function endQuiz() {
+        document.getElementById('quizScreen').classList.add('hidden');
+        document.getElementById('resultScreen').classList.remove('hidden');
+        document.getElementById('scoreText').innerText = Skor kamu: ${score} / 10;
+    }
+</script>
+
+</body>
+</html>
