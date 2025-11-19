@@ -1,0 +1,449 @@
+<!doctype html>
+
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simulasi Gempa Sekolahku</title>
+  <meta name="description" content="Game simulasi gempa edukatif untuk anak sekolah - mudah dipasang ke GitHub Pages" />
+  <style>
+    :root{--bg:#f5f7fb;--card:#ffffff;--accent:#0b63d6;--good:#2d9b2d;--bad:#d64545;--muted:#7a8596}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter, Roboto, Arial, sans-serif;background:linear-gradient(180deg,var(--bg),#e9f0ff);color:#0b2540}
+    .wrap{max-width:980px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;gap:16px}
+    header .logo{width:68px;height:68px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#4fa3ff);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px}
+    h1{margin:0;font-size:22px}
+    p.lead{margin:6px 0 18px;color:var(--muted)}
+    .controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+    button.btn{background:var(--accent);color:#fff;border:0;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    button.ghost{background:transparent;border:1px solid rgba(11,99,214,.12);color:var(--accent)}
+    main{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(11,63,120,.06)}
+    /* game area */
+    .game-stage{min-height:360px;display:flex;flex-direction:column;gap:12px}
+    .scene-title{font-weight:700}
+    .scene-desc{color:var(--muted)}
+    .scene-visual{height:180px;border-radius:10px;background:linear-gradient(180deg,#fff,#f2f8ff);display:flex;align-items:center;justify-content:center;border:1px dashed #e2eaf8}
+    .choices{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+    .choice{padding:10px 12px;border-radius:10px;border:1px solid #e7eefc;background:#fff;cursor:pointer}
+    .choice.correct{border-color:rgba(45,155,45,.18);box-shadow:0 4px 8px rgba(45,155,45,.06)}
+    .choice.wrong{border-color:rgba(214,69,69,.12)}
+    .timer{font-weight:700;color:var(--muted)}
+    .side{display:flex;flex-direction:column;gap:12px}
+    .score{font-size:24px;color:var(--accent);font-weight:800}
+    .small{font-size:13px;color:var(--muted)}
+    .badge{padding:8px;border-radius:8px;background:linear-gradient(90deg,#fff,#eef6ff);border:1px solid #e6f0ff}
+    .scenarios-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .scenario-btn{padding:8px;border-radius:8px;background:#f7fbff;border:1px solid #e7f0ff;cursor:pointer}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+    .hidden{display:none}
+    /* responsive */
+    @media (max-width:920px){main{grid-template-columns:1fr} .side{order:2}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">SG</div>
+      <div>
+        <h1>Simulasi Gempa Sekolahku</h1>
+        <p class="lead">Game edukatif: latihan cepat & skenario banyak untuk belajar aman saat gempa. Siap main?</p>
+      </div>
+    </header><div class="controls">
+  <button class="btn" id="startBtn">Mulai Game (Skenario Acak)</button>
+  <button class="ghost" id="practiceBtn">Mode Latihan 30 detik</button>
+  <button class="ghost" id="resetBtn">Reset Progress</button>
+  <button class="ghost" id="eduBtn">Edukasi & Tips</button>
+</div>
+
+<main>
+  <section class="card">
+    <div id="welcome" class="game-stage">
+      <div>
+        <div class="scene-title">Panduan Singkat</div>
+        <div class="scene-desc small">Pilih skenario di kanan untuk mencobanya, atau tekan "Mulai Game" untuk menjalankan 10 skenario berurutan. Setiap pilihan dinilai cepat dan benar. Tujuan: kumpulkan badge Siaga Gempa!</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="scene-visual" id="visualIntro"> <div style="text-align:center"><strong>Visual Sekolah</strong><br><small class="small">Animasi ringan nanti</small></div></div>
+        <div style="flex:1">
+          <div class="small">Pilihan aksi muncul saat guncangan. Pilih tindakan paling aman. Jika salah, akan muncul penjelasan kenapa salah.</div>
+          <div style="margin-top:8px" class="small">Skor: +10 untuk jawaban benar cepat, +5 untuk jawaban benar lambat, 0 untuk salah. Skor total rekam di penyimpanan lokal.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="game" class="game-stage hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="scene-title" id="sceneTitle">Scene Title</div>
+          <div class="scene-desc" id="sceneDesc">Deskripsi singkat situasi</div>
+        </div>
+        <div style="text-align:right">
+          <div class="timer" id="timer">Waktu: 10s</div>
+          <div class="small">Skenario <span id="sceneIndex">1</span> / <span id="sceneTotal">10</span></div>
+        </div>
+      </div>
+
+      <div class="scene-visual" id="sceneVisual">
+        <!-- simple SVG character and school background -->
+        <svg width="100%" height="100%" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid meet">
+          <rect x="6" y="10" width="588" height="160" rx="10" fill="#f6fbff" stroke="#e1ecff"/>
+          <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#6b7788" font-size="18">Visual: area sekolah</text>
+        </svg>
+      </div>
+
+      <div class="choices" id="choicesArea"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <div id="feedback" class="small"></div>
+        <div>
+          <button class="btn" id="nextBtn">Lewati / Berikutnya</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <aside class="side">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="small">Skor Kamu</div>
+          <div class="score" id="score">0</div>
+        </div>
+        <div style="text-align:right">
+          <div class="small">Badge</div>
+          <div class="badge" id="badge">Belum ada</div>
+        </div>
+      </div>
+      <hr style="border:none;border-top:1px solid #f1f6ff;margin:12px 0">
+      <div class="small">Pilih skenario:</div>
+      <div class="scenarios-list" id="scenarioBtns"></div>
+    </div>
+
+    <div class="card">
+      <div class="small">Ringkasan Kesalahan Umum</div>
+      <ul style="margin:8px 0 0 18px;color:var(--muted);line-height:1.5">
+        <li>Berlarian panik ke luar</li>
+        <li>Berdiri dekat kaca atau rak</li>
+        <li>Naik tangga saat gempa</li>
+        <li>Mengambil tas sebelum evakuasi</li>
+      </ul>
+    </div>
+
+    <div class="card small">
+      <div style="font-weight:700;margin-bottom:6px">Tentang</div>
+      <div class="small">Dibuat untuk media pembelajaran. Bisa diupload ke GitHub Pages: cukup upload file ini sebagai <code>index.html</code>.</div>
+    </div>
+  </aside>
+</main>
+
+<div id="eduModal" class="card hidden" style="margin-top:18px">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-weight:800">Edukasi & Tips Singkat</div>
+      <div class="small">Drop, Cover, Hold — Turun, Lindungi, Pegang.</div>
+    </div>
+    <div><button class="ghost" id="closeEdu">Tutup</button></div>
+  </div>
+  <hr style="border:none;border-top:1px solid #eef6ff;margin:12px 0">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div>
+      <div style="font-weight:700">Saat Di Dalam Ruang</div>
+      <ul style="margin:6px 0 0 18px;color:var(--muted)">
+        <li>Turun, berlindung di bawah meja, tahan pegangan meja</li>
+        <li>Jauhi kaca dan rak tinggi</li>
+        <li>Setelah reda, keluar lewat jalur evakuasi</li>
+      </ul>
+    </div>
+    <div>
+      <div style="font-weight:700">Saat Di Luar Ruang</div>
+      <ul style="margin:6px 0 0 18px;color:var(--muted)">
+        <li>Jauh dari gedung, pohon, tiang listrik</li>
+        <li>Menuju titik kumpul sekolah</li>
+        <li>Jangan menyebar berita palsu</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="small">Versi sederhana — bebas dikembangkan. Buat repo, upload index.html, aktifkan GitHub Pages (branch main / root).</div>
+</footer>
+
+  </div>  <script>
+    // --- data skenario ---
+    const SCENARIOS = [
+      {id:1,title:'Di Dalam Kelas',desc:'Guncangan kuat terjadi tiba-tiba saat di kelas. Pilih tindakan paling aman.',choices:[
+        {text:'Berlindung di bawah meja',ok:true,explain:'Meja melindungi dari jatuhan benda.'},
+        {text:'Lari ke luar sambil panik',ok:false,explain:'Berlari panik bisa menyebabkan tabrakan dan cedera.'},
+        {text:'Berdiri dekat jendela',ok:false,explain:'Kaca dapat pecah dan melukai.'}
+      ]},
+
+      {id:2,title:'Saat Upacara di Lapangan',desc:'Upacara sedang berlangsung. Guncangan terjadi.',choices:[
+        {text:'Menjauh dari tiang bendera',ok:true,explain:'Tiang/struktur bisa roboh.'},
+        {text:'Berkerumun dekat tembok',ok:false,explain:'Tembok bisa runtuh dan membahayakan.'},
+        {text:'Berpencar tanpa arahan',ok:false,explain:'Lebih aman berkumpul ke titik evakuasi yang ditentukan.'}
+      ]},
+
+      {id:3,title:'Di Koridor Sekolah',desc:'Guncangan saat berada di koridor.',choices:[
+        {text:'Cari meja/tiang untuk berlindung',ok:true,explain:'Cari objek yang kuat untuk berlindung.'},
+        {text:'Terus lari ke luar tanpa lihat',ok:false,explain:'Berlari bisa membuatmu jatuh/tersandung.'},
+        {text:'Berdiri di dekat jendela',ok:false,explain:'Kaca berbahaya saat pecah.'}
+      ]},
+
+      {id:4,title:'Di Kantin',desc:'Banyak piring/kaca di sekitar. Gempa!',choices:[
+        {text:'Menjauhi etalase kaca',ok:true,explain:'Kaca berpotensi pecah.'},
+        {text:'Berlindung di bawah meja',ok:true,explain:'Meja melindungi kepala dari benda jatuh.'},
+        {text:'Memegang lemari makanan',ok:false,explain:'Lemari bisa terbalik atau jatuh.'}
+      ]},
+
+      {id:5,title:'Di Perpustakaan',desc:'Rak buku tinggi mengeluarkan suara saat gempa.',choices:[
+        {text:'Menjauhi rak buku',ok:true,explain:'Rak bisa runtuh.'},
+        {text:'Lindungi kepala dengan tas',ok:true,explain:'Barang sederhana bisa melindungi kepala.'},
+        {text:'Berdiri di antara rak',ok:false,explain:'Risiko tertimpa rak lebih tinggi.'}
+      ]},
+
+      {id:6,title:'Di Toilet Sekolah',desc:'Guncangan membuat lampu bergoyang.',choices:[
+        {text:'Tetap di tempat dan lindungi kepala',ok:true,explain:'Keluar saat guncangan kuat berbahaya.'},
+        {text:'Keluar sambil berlari',ok:false,explain:'Berjalan keluar setelah reda lebih aman.'},
+        {text:'Menuju wastafel semua orang',ok:false,explain:'Area sempit bisa berbahaya.'}
+      ]},
+
+      {id:7,title:'Di Tangga',desc:'Guncangan terjadi di tengah tangga.',choices:[
+        {text:'Berhenti dan duduk sambil lindungi kepala',ok:true,explain:'Tangga licin dan berbahaya saat gempa.'},
+        {text:'Terus turun dengan cepat',ok:false,explain:'Resiko jatuh sangat tinggi.'},
+        {text:'Memegang pegangan dan turun perlahan',ok:true,explain:'Pegangan membantu keseimbangan.'}
+      ]},
+
+      {id:8,title:'Di Lab IPA',desc:'Ada bahan dan alat kaca di sekitar.',choices:[
+        {text:'Menjauhi bahan kimia dan alat kaca',ok:true,explain:'Jangan sentuh bahan berbahaya.'},
+        {text:'Matikan sumber api jika aman',ok:true,explain:'Jika ada sumber api kecil, matikan bila memungkinkan.'},
+        {text:'Mainkan alat untuk lihat apa terjadi',ok:false,explain:'Menyentuh alat berbahaya saat gempa riskan.'}
+      ]},
+
+      {id:9,title:'Di Ruang Komputer',desc:'Monitor besar dan rak server di sekitar.',choices:[
+        {text:'Lindungi kepala dan menjauhi rak server',ok:true,explain:'Peralatan berat bisa jatuh.'},
+        {text:'Lari sambil mengangkat monitor',ok:false,explain:'Perilaku ini berbahaya.'},
+        {text:'Sembunyi di bawah meja server',ok:false,explain:'Area sempit sulit bergerak.'}
+      ]},
+
+      {id:10,title:'Evakuasi Setelah Gempa',desc:'Gempa reda. Waktunya evakuasi teratur.',choices:[
+        {text:'Ikuti jalur evakuasi dan jangan ambil tas',ok:true,explain:'Benda-barang bisa menunda evakuasi.'},
+        {text:'Kembali ke dalam untuk ambil barang',ok:false,explain:'Risiko reruntuhan setelah gempa."},
+        {text:'Bantu teman terluka dan cari guru',ok:true,explain:'Prioritaskan keselamatan dan minta bantuan.'}
+      ]}
+    ];
+
+    // --- app state ---
+    let state = {
+      score: Number(localStorage.getItem('sg_score')) || 0,
+      currentIndex: 0,
+      order: [],
+      mode:'sequence', // 'sequence' or 'practice'
+      timer: null,
+      remaining: 0
+    };
+
+    // dom refs
+    const startBtn = document.getElementById('startBtn');
+    const practiceBtn = document.getElementById('practiceBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const eduBtn = document.getElementById('eduBtn');
+    const gameEl = document.getElementById('game');
+    const welcomeEl = document.getElementById('welcome');
+    const sceneTitle = document.getElementById('sceneTitle');
+    const sceneDesc = document.getElementById('sceneDesc');
+    const choicesArea = document.getElementById('choicesArea');
+    const timerEl = document.getElementById('timer');
+    const scoreEl = document.getElementById('score');
+    const badgeEl = document.getElementById('badge');
+    const sceneIndex = document.getElementById('sceneIndex');
+    const sceneTotal = document.getElementById('sceneTotal');
+    const nextBtn = document.getElementById('nextBtn');
+    const scenarioBtns = document.getElementById('scenarioBtns');
+    const eduModal = document.getElementById('eduModal');
+    const closeEdu = document.getElementById('closeEdu');
+
+    // init UI
+    function init(){
+      scoreEl.textContent = state.score;
+      updateBadge();
+      populateScenarioButtons();
+      sceneTotal.textContent = SCENARIOS.length;
+    }
+
+    function populateScenarioButtons(){
+      scenarioBtns.innerHTML='';
+      SCENARIOS.forEach((s,i)=>{
+        const b = document.createElement('div');
+        b.className='scenario-btn';
+        b.textContent = (i+1)+'. '+s.title;
+        b.onclick = ()=>{startSingleScenario(i)};
+        scenarioBtns.appendChild(b);
+      });
+    }
+
+    function startGameSequence(){
+      state.mode='sequence';
+      state.order = shuffle(Array.from(Array(SCENARIOS.length).keys()));
+      state.currentIndex = 0;
+      welcomeEl.classList.add('hidden');
+      gameEl.classList.remove('hidden');
+      runCurrent();
+    }
+
+    function startPractice(){
+      state.mode='practice';
+      state.order = shuffle(Array.from(Array(SCENARIOS.length).keys())).slice(0,5);
+      state.currentIndex = 0;
+      welcomeEl.classList.add('hidden');
+      gameEl.classList.remove('hidden');
+      runCurrent(true);
+    }
+
+    function startSingleScenario(index){
+      state.mode='single';
+      state.order = [index];
+      state.currentIndex = 0;
+      welcomeEl.classList.add('hidden');
+      gameEl.classList.remove('hidden');
+      runCurrent();
+    }
+
+    function runCurrent(isPractice=false){
+      clearTimer();
+      const idx = state.order[state.currentIndex];
+      const s = SCENARIOS[idx];
+      sceneTitle.textContent = s.title;
+      sceneDesc.textContent = s.desc;
+      sceneIndex.textContent = state.currentIndex+1;
+      sceneTotal.textContent = state.order.length;
+
+      // build choices
+      choicesArea.innerHTML='';
+      s.choices.forEach((c,ci)=>{
+        const d = document.createElement('div');
+        d.className='choice';
+        d.textContent = c.text;
+        d.onclick = ()=>{handleChoice(d,c,s)};
+        choicesArea.appendChild(d);
+      });
+
+      // timer
+      startTimer(12); // 12 seconds default
+      document.getElementById('feedback').textContent = '';
+      nextBtn.disabled=false;
+    }
+
+    function handleChoice(dom,choice,scenario){
+      if(dom.dataset.done) return;
+      dom.dataset.done = '1';
+      // mark all choices disabled
+      Array.from(choicesArea.children).forEach(ch=>ch.style.pointerEvents='none');
+      clearTimer();
+      if(choice.ok){
+        dom.classList.add('correct');
+        // scoring: bonus for speed
+        const bonus = Math.max(5, state.remaining); // at least 5
+        state.score += (10 + Math.round(bonus/2));
+        document.getElementById('feedback').textContent = 'Benar — '+choice.explain;
+      } else {
+        dom.classList.add('wrong');
+        document.getElementById('feedback').textContent = 'Salah — '+choice.explain;
+      }
+      persistScore();
+      scoreEl.textContent = state.score;
+      updateBadge();
+    }
+
+    function nextScene(){
+      clearTimer();
+      state.currentIndex++;
+      if(state.currentIndex >= state.order.length){
+        // end
+        endSequence();
+        return;
+      }
+      runCurrent();
+    }
+
+    function endSequence(){
+      gameEl.classList.add('hidden');
+      welcomeEl.classList.remove('hidden');
+      document.getElementById('feedback').textContent = '';
+      alert('Selesai! Skor kamu: '+state.score+'\nBadge: '+badgeEl.textContent);
+    }
+
+    function startTimer(seconds){
+      state.remaining = seconds;
+      timerEl.textContent = 'Waktu: '+state.remaining+'s';
+      state.timer = setInterval(()=>{
+        state.remaining--;
+        timerEl.textContent = 'Waktu: '+state.remaining+'s';
+        if(state.remaining<=0){
+          clearTimer();
+          // auto mark as wrong
+          Array.from(choicesArea.children).forEach((ch,i)=>{
+            ch.style.pointerEvents='none';
+          });
+          document.getElementById('feedback').textContent = 'Waktu habis — pilih tindakan lebih cepat ya.';
+        }
+      },1000);
+    }
+
+    function clearTimer(){if(state.timer){clearInterval(state.timer);state.timer=null}}
+
+    function persistScore(){
+      localStorage.setItem('sg_score',state.score);
+    }
+
+    function updateBadge(){
+      const s = state.score;
+      let b = 'Belum ada';
+      if(s>=400) b='Pahlawan Siaga';
+      else if(s>=250) b='Calon Relawan Cilik';
+      else if(s>=100) b='Siaga Gempa';
+      badgeEl.textContent = b;
+    }
+
+    function resetProgress(){
+      if(confirm('Reset skor dan progres?')){
+        state.score=0;persistScore();scoreEl.textContent='0';updateBadge();
+      }
+    }
+
+    // util
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]
+      }
+      return arr;
+    }
+
+    // event wiring
+    startBtn.addEventListener('click',startGameSequence);
+    practiceBtn.addEventListener('click',startPractice);
+    resetBtn.addEventListener('click',resetProgress);
+    eduBtn.addEventListener('click',()=>{eduModal.classList.toggle('hidden')});
+    closeEdu.addEventListener('click',()=>{eduModal.classList.add('hidden')});
+    nextBtn.addEventListener('click',nextScene);
+
+    // keyboard quick next
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Enter') nextScene();
+    });
+
+    // single scenario starter
+    function startSingleScenario(index){
+      state.mode='single';
+      state.order=[index];state.currentIndex=0;welcomeEl.classList.add('hidden');gameEl.classList.remove('hidden');runCurrent();
+    }
+
+    // expose startSingleScenario to scenarioBtns onclicks
+    window.startSingleScenario = startSingleScenario;
+
+    init();
+  </script></body>
+</html>
